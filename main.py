@@ -23,7 +23,7 @@ for itm in reader:
 df['mastat_missing'] = ''
 
 # For testing just take the first 40
-#df = df.head()
+#df = df.head(50)
 
 for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     print('Processing {}'.format(i))
@@ -41,7 +41,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     #     pass
     # if row[12] == 2: # if _09 <<Testing
     # if row[8] == 0: # if _09
-    if row[8] == 0:  # if _09
+    if row[8] == 1:  # if _09
         # Go through whole dataset and get all observations
         # that meet this rows last, married and counter, eg never,never and 4
         # from those records get the mastat values.
@@ -49,15 +49,37 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         _next = row[10]
         _counter = row[12]
         _satisfy_frame = pd.DataFrame()
-        _satisfy_frame = _satisfy_frame.append(
-            df.loc[
-                # For testing just use the counter and set the head to 50
-                (df['last'] == _last) & (df['next'] == _next) & (df['counter'] == _counter) & (df['year'] == 2009) |
-                (df['last'] == _last) & (df['next'] == _next) & (
-                    df['counter'] == _counter)
-                #df['counter'] == _counter
-            ]
-        )
+        # _satisfy_frame = _satisfy_frame.append(
+        #     df.loc[
+        #         # For testing just use the counter and set the head to 50
+        #         (df['last'] == _last) & (df['next'] == _next) & (df['counter'] == _counter) & (df['year'] == 2009) |
+        #         (df['last'] == _last) & (df['next'] == _next) & (
+        #             df['counter'] == _counter)
+        #         #df['counter'] == _counter
+        #     ]
+        # )
+
+        condition_1 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
+            df['counter'] == _counter) & (df['year'] == 2009) & df['_09'] == 0]
+
+        condition_2 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
+            df['counter'] == _counter) & df['_09'] == 0]
+
+
+        if not condition_1.empty:
+            _satisfy_frame = _satisfy_frame.append(
+                condition_1
+            )
+        elif not condition_2.empty:
+            _satisfy_frame = _satisfy_frame.append(
+                condition_2
+            )
+        else:
+            _satisfy_frame = _satisfy_frame.append(
+                df.iloc[i-1]
+            )
+            # use the prev rowdf.iloc[i-1]
+
 
         counts = _satisfy_frame['mastat'].value_counts().to_dict()
         total = 0
