@@ -16,15 +16,17 @@ data_file = 'data/for_imputation.dta'
 """ Set up a data frame to work with """
 reader=pd.read_stata(data_file, chunksize=100000)
 df = pd.DataFrame()
-_df_out = pd.DataFrame()
 
 for itm in reader:
     df=df.append(itm)
 
-# Just slice the data for now
-df = df
+df['mastat_missing'] = ''
+
+# For testing just take the first 40
+df = df.head(10000)
 
 for i,row in enumerate(df.itertuples()):  # enumeration means the row begins 0
+    locator = i
     # TODO: Split out prev next to methods
     # If this is slow we can just use cols[9] and [10] which ash has populated
     # with the next and prev values we are interested in.
@@ -35,8 +37,9 @@ for i,row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     # except IndexError:
     #     print('End of set')
     #     pass
-
-    if row[8] == 1: # if _09
+    # if row[12] == 2: # if _09 <<Testing
+    #if row[8] == 0: # if _09
+    if row[8] == 0: # if _09
         # Go through whole dataset and get all observations
         # that meet this rows last, married and counter, eg never,never and 4
         # from those records get the mastat values.
@@ -46,10 +49,18 @@ for i,row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         _satisfy_frame = pd.DataFrame()
         _satisfy_frame = _satisfy_frame.append(
             df.loc[
+                    # For testing just use the counter and set the head to 50
+                    (df['last'] == _last) & (df['next'] == _next) & (df['counter'] == _counter) & (df['year'] == 2009) |
                     (df['last'] == _last) & (df['next'] == _next) & (df['counter'] == _counter)
                     #df['counter'] == _counter
                 ]
         )
+        print(df.loc[
+                    # For testing just use the counter and set the head to 50
+                    (df['last'] == _last) & (df['next'] == _next) & (df['counter'] == _counter) & (df['year'] == 2009)
+                    #df['counter'] == _counter
+                ])
+
         counts = _satisfy_frame['mastat'].value_counts().to_dict()
         total = 0
         percentages = []
@@ -71,24 +82,13 @@ for i,row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             else:
                 intervals.append([last + 1, val[1] + last, val[0]])
                 last = last + val[1]
-
-        for i in intervals:
-            if i[0] <= random_number <= i[1]:
-                x = i
-                # print('Yes')
-                # print(random_number)
-                # print(i)
-
-        # Next is replace and populate
-
-
-            #     print(item)
-            #     print(counts[item])
-            #     print()
-            # print(total)
+        for interval in intervals:
+            if interval[0] <= random_number <= interval[1]:
+                df.at[locator,'mastat_missing'] = interval[2]
 
 
 
+df.to_csv("testing.csv")
 end = time.time()
 print('This took: {} seconds'.format(int(end - start)))
 
