@@ -23,7 +23,7 @@ for itm in reader:
 df['mastat_missing'] = ''
 
 # For testing just take the first 40
-#df = df.head(50)
+#df = df.head(2010)
 
 for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     print('Processing {}'.format(i))
@@ -41,13 +41,13 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     #     pass
     # if row[12] == 2: # if _09 <<Testing
     # if row[8] == 0: # if _09
-    if row[8] == 1:  # if _09
+    if row[4] == 1:  # if _09
         # Go through whole dataset and get all observations
         # that meet this rows last, married and counter, eg never,never and 4
         # from those records get the mastat values.
-        _last = row[9]
-        _next = row[10]
-        _counter = row[12]
+        _last = row[5]
+        _next = row[6]
+        _counter = row[7]
         _satisfy_frame = pd.DataFrame()
         # _satisfy_frame = _satisfy_frame.append(
         #     df.loc[
@@ -60,28 +60,31 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         # )
 
         condition_1 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter'] == _counter) & (df['year'] == 2009) & df['_09'] == 0]
+            df['counter'] == _counter) & (df['year'] == 2009) & (df['_09'] == 0)]
 
         condition_2 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter'] == _counter) & df['_09'] == 0]
-
+            df['counter'] == _counter) & (df['_09'] == 0)]
 
         if not condition_1.empty:
             _satisfy_frame = _satisfy_frame.append(
                 condition_1
             )
+            #print('condition 1 used')
         elif not condition_2.empty:
             _satisfy_frame = _satisfy_frame.append(
                 condition_2
             )
+            #print('condition 2 used')
         else:
             _satisfy_frame = _satisfy_frame.append(
                 df.iloc[i-1]
             )
+            # print('condition 3 used')
             # use the prev rowdf.iloc[i-1]
 
 
         counts = _satisfy_frame['mastat'].value_counts().to_dict()
+        # print(counts)
         total = 0
         percentages = []
         if counts:
@@ -107,42 +110,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                 df.at[locator, 'mastat_missing'] = interval[2]
 
 
-df.to_csv("testing.csv")
+
+df.to_csv("data/out_imputed.csv")
 end = time.time()
 print('This took: {} seconds'.format(int(end - start)))
-
-
-"""
-for each row:
-
-        # loop over the whole data again and check for the condition
-        for each row:
-            if this_condition_is_met:
-                # get the mastat vale and store it in a dataframe eg:
-                mastats.append(this_row['mastat'])
-
-        # from mastat dataframe, calculate some percentages
-        # EG count 1's, devide by total * 100 to give us a % value A (1)
-        # Same for B and C - like this:
-        # A = x%
-        # B = Y%
-        # C = z%
-
-        # TODO: Rounding rule
-
-        # create the intervals from the % calculated above
-        # _A = 0, X%
-        # _B = X+1, X+Y
-        # _C = X+Y+1, 100
-
-        # Example of the above would look something like
-        # _a = 0, 60
-        # _b = (60+1),(60+5)
-        # _c = (60+5)+1, 100
-        # generate random number between 1 and 100
-        # From the random number work out what it falls into, EG if the
-        # random number generated is 55.... you guessed it, it's _a ;)
-        # this_row['mastat'] == A
-
-        df_out.to_csv("testing.csv")
-"""
