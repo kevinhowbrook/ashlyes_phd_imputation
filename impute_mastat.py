@@ -11,7 +11,7 @@ TODOS:
 - Random seeding
 - Rounding rules
 """
-data_file = 'data/for_imputation.dta'
+data_file = 'souce_data/for_imputation.dta'
 
 """ Set up a data frame to work with """
 reader = pd.read_stata(data_file, chunksize=100000)
@@ -111,6 +111,10 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
 
 
 
-df.to_csv("data/out_imputed.csv")
+df.to_csv("out_data/out_imputed.csv")
 end = time.time()
 print('This took: {} seconds'.format(int(end - start)))
+
+# TODO -
+# Refactor to be run with source data as file argument
+# whole script .dta, not csv
