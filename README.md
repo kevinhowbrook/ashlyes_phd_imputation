@@ -14,7 +14,7 @@ Change directory
 
 Running the imputation
 
-```python3 imputate_mastat.py source_data\[source.dta] out_data/[out.dta]```
+```python3 imputate_mastat.py source_data/[source.dta] out_data/[out.dta]```
 
 When you want to add a new source file, open your directory in file explorer and your dta file to the source_data file. You will then need to modify the new dta file's permissions:
 
