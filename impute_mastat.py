@@ -1,6 +1,7 @@
 import pandas as pd
 import time
 import random
+import utils
 
 start = time.time()
 
@@ -11,7 +12,7 @@ TODOS:
 - Random seeding
 - Rounding rules
 """
-data_file = 'souce_data/for_imputation.dta'
+data_file = 'source_data/for_imputation.dta'
 
 """ Set up a data frame to work with """
 reader = pd.read_stata(data_file, chunksize=100000)
@@ -23,10 +24,14 @@ for itm in reader:
 df['mastat_missing'] = ''
 
 # For testing just take the first 40
-#df = df.head(2010)
+#df = df.head()
+percentages_report = []
+
 
 for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
-    print('Processing {}'.format(i))
+    print('Processing {} ...'.format(i))
+
+
 
     locator = i
     # TODO: Split out prev next to methods
@@ -58,33 +63,30 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         #         #df['counter'] == _counter
         #     ]
         # )
-
+        prev_counter = df.iloc[i-1][6]
         condition_1 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter'] == _counter) & (df['year'] == 2009) & (df['_09'] == 0)]
+            df['counter_pre'] == prev_counter) & (df['year'] == 2009) & (df['_09'] == 0)]
 
         condition_2 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter'] == _counter) & (df['_09'] == 0)]
+            df['counter_pre'] == prev_counter) & (df['_09'] == 0)]
 
         if not condition_1.empty:
             _satisfy_frame = _satisfy_frame.append(
                 condition_1
             )
-            #print('condition 1 used')
+            print('condition 1 used')
         elif not condition_2.empty:
             _satisfy_frame = _satisfy_frame.append(
                 condition_2
             )
-            #print('condition 2 used')
+            print('condition 2 used')
         else:
             _satisfy_frame = _satisfy_frame.append(
                 df.iloc[i-1]
             )
             # print('condition 3 used')
             # use the prev rowdf.iloc[i-1]
-
-
         counts = _satisfy_frame['mastat'].value_counts().to_dict()
-        # print(counts)
         total = 0
         percentages = []
         if counts:
@@ -92,7 +94,11 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                 total = total + counts[total_item]
 
             for item in counts:
-                percentages.append([item, int(counts[item] / total * 100)])
+                #rounded_val = utils.round_to_100(int(counts[item] / total * 100)
+                percentages.append([item, counts[item] / total * 100])
+
+        # Rounding
+        percentages = utils.round_percentages(percentages)
 
         random_number = random.randint(1, 100)
         # make an interval list
@@ -109,8 +115,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             if interval[0] <= random_number <= interval[1]:
                 df.at[locator, 'mastat_missing'] = interval[2]
 
-
-
+print(percentages_report)
 df.to_csv("out_data/out_imputed.csv")
 end = time.time()
 print('This took: {} seconds'.format(int(end - start)))
