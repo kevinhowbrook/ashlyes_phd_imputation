@@ -2,17 +2,37 @@ import pandas as pd
 import time
 import random
 import utils
+import sys
+import os
+
 
 start = time.time()
 
+def setup_files():
+    files = []
+    try:
+        files.append(sys.argv[1])
+    except Exception as e:
+        print('You need to add your source data file')
+        print("""Your command should look like this:
+python impute_mastat.py source_data/my_source.dta out_data/my_output.dta
+        """)
+        sys.exit(2)
+    try:
+        files.append(sys.argv[2])
+    except Exception as e:
+        print('You need to add your output data file')
+        print("""Your command should look like this:
+python impute_mastat.py source_data/my_source.dta out_data/my_output.dta
+        """)
+        sys.exit(2)
 
-"""
-Sanitize the datas
-TODOS:
-- Random seeding
-- Rounding rules
-"""
-data_file = 'source_data/for_imputation.dta'
+    return files
+
+data_file = setup_files()[0]
+output_file = setup_files()[1]
+
+#'source_data/for_imputation.dta'
 
 """ Set up a data frame to work with """
 reader = pd.read_stata(data_file, chunksize=100000)
@@ -115,9 +135,10 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             if interval[0] <= random_number <= interval[1]:
                 df.at[locator, 'mastat_missing'] = interval[2]
 
-print(percentages_report)
-df.to_csv("out_data/out_imputed.csv")
+df['mastat_missing'] = df['mastat_missing'].astype(str)  # convert type
+df.to_stata(output_file)
 end = time.time()
+
 print('This took: {} seconds'.format(int(end - start)))
 
 # TODO -
