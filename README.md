@@ -12,7 +12,7 @@ Change directory
 
 ```cd [name_of_dir]```
 
-Running the imputation
+### Running the imputation script
 
 ```python3 imputate_mastat.py source_data/[source.dta] out_data/[out.dta]```
 
@@ -22,42 +22,14 @@ When you want to add a new source file, open your directory in file explorer and
 
 This will ask for you password.
 
+### Running the keep_full_info scripts.
+The first to run will be:
+```python keep_full_info/make_unique_pids.py source_data/raw.dta source_data/clean.dta out_data/unique_pids.dta```
+This will creata a dta file of unique pids where you specify, eg out_data/unique_pids.dta
+
+Then using the above dta, run the next script:
+```
+python keep_full_info/create_new_clean.py source_data/clean_mar.dta out_data/unique_pids.dta out_data/new_cleaned.dta
+```
 
 ![image](https://i.imgur.com/3Yv8Fet.png)
-
-### Pseudo code
-
-```
-for each row:
-
-        # loop over the whole data again and check for the condition
-        for each row:
-            if this_condition_is_met:
-                # get the mastat vale and store it in a dataframe eg:
-                mastats.append(this_row['mastat'])
-
-        # from mastat dataframe, calculate some percentages
-        # EG count 1's, devide by total * 100 to give us a % value A (1)
-        # Same for B and C - like this:
-        # A = x%
-        # B = Y%
-        # C = z%
-
-        # TODO: Rounding rule
-
-        # create the intervals from the % calculated above
-        # _A = 0, X%
-        # _B = X+1, X+Y
-        # _C = X+Y+1, 100
-
-        # Example of the above would look something like
-        # _a = 0, 60
-        # _b = (60+1),(60+5)
-        # _c = (60+5)+1, 100
-        # generate random number between 1 and 100
-        # From the random number work out what it falls into, EG if the
-        # random number generated is 55.... you guessed it, it's _a ;)
-        # this_row['mastat'] == A
-
-        df_out.to_csv("testing.csv")
-```
