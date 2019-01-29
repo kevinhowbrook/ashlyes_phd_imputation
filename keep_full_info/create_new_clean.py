@@ -16,6 +16,7 @@ def main():
     output_data = _setup_files()[2]
 
     clean_data = _make_df_from_data(clean_data)
+    clean_data.to_csv('out_data/test_from_df.csv')
     unique_pids_data = _make_df_from_data(unique_pids_data)
     # Because I don't know how to do df compare, use a list :/...
     unique_pids_list = unique_pids_data['pidp'].values.tolist()
@@ -24,12 +25,12 @@ def main():
         if(row[1] in unique_pids_list):
             clean_data.drop(i, inplace=True)
 
-    # clean_data['start'] = clean_data['start'].astype(str)
-    # clean_data['end'] = clean_data['end'].astype(str)
-    # clean_data['div'] = clean_data['div'].astype(str)
-    # clean_data['wid'] = clean_data['wid'].astype(str)
-
+    clean_data['start'] = clean_data['start'].astype(str)
+    clean_data['end'] = clean_data['end'].astype(str)
+    #clean_data['div'] = clean_data['div'].astype(str)
+    #clean_data['wid'] = clean_data['wid'].astype(str)
     clean_data.to_stata(output_data)
+    clean_data.to_csv('out_data/test.csv')
 
 def _make_df_from_data(data):
     reader = pd.read_stata(data, chunksize=100000, convert_categoricals=False)

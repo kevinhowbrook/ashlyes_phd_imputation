@@ -24,12 +24,12 @@ This will ask for you password.
 
 ### Running the keep_full_info scripts.
 The first to run will be:
-```python keep_full_info/make_unique_pids.py source_data/raw.dta source_data/clean.dta out_data/unique_pids.dta```
+```python3 keep_full_info/make_unique_pids.py source_data/raw.dta source_data/clean.dta out_data/unique_pids.dta```
 This will creata a dta file of unique pids where you specify, eg out_data/unique_pids.dta
 
 Then using the above dta, run the next script:
 ```
-python keep_full_info/create_new_clean.py source_data/clean_mar.dta out_data/unique_pids.dta out_data/new_cleaned.dta
+python3 keep_full_info/create_new_clean.py source_data/clean_mar.dta out_data/unique_pids.dta out_data/new_cleaned.dta
 ```
 
 ![image](https://i.imgur.com/3Yv8Fet.png)
