@@ -86,12 +86,29 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     if next_pidp and pidp == next_pidp:
         continue
 
-    print(pidp)
     # - Get the current pidp
     # - lookup every observation with this pidp as that is what we will be
     #   Running the logic on
     tmp_data = df.loc[df['pidp'] == pidp]
+    # Loop through a frame by pidp and assign correct values
+    # for _i, _row in enumerate(tmp_data.itertuples()):
+
+    #     tmp_data.at[i,'high_qual'] = 'hi'
+    # #print(tmp_data)
+    for _i, _row in tmp_data.iterrows():
+        pass
+        #tmp_data.at[_i,'high_qual'] = 'Overridden'
+        # logic here for amending/overriding values
+        # in pidp 2051, the high_qual is first_degree, age achieved 21.
+        # So we need to fill in high_qual values going back to when they were 21 or
+        #  until another high_qual is found EG GCSE.
+        # Before that should be left as NaN
+
+
     print(tmp_data)
+
+    # new_df = new_df.append(tmp_data)
+
 
     # appending to a df
     # new_df = new_df.append({
@@ -103,5 +120,6 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
 
     # if type(high_qual) == str and high_qual != 'no qual':
     #     print(high_qual)
+#print(tmp_data)
 # print(df)
-# print(new_df.head())
+print(new_df)
