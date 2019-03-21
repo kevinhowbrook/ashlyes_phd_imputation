@@ -33,3 +33,42 @@ python3 keep_full_info/create_new_clean.py source_data/clean_mar.dta out_data/un
 ```
 
 ![image](https://i.imgur.com/3Yv8Fet.png)
+
+
+## Impute education logic
+
+
+Assumptions
+Average age for qualifications
+- no_qual is the default and will replace NaN, it means no_qual Someone with any qualification will never get no_qual assigned.
+- no qual - 16
+- gcse - 16
+- a level - 18
+- other higher - 20
+- first degree - 21
+- high degree - 26
+
+""" EG
+If we find someone has a first_degree value at age 50,
+this means at 50 they were observed with a degree.
+We assume that the age they got that degree would be 21
+BUT, if we creep back in the data and find they have high_qual A-levels
+at age 48, then we know they got there degree at 49.
+so:
+45 NaN
+46 NaN
+47 NaN
+48 a_levels
+49 first_degree
+49 first_degree
+
+Given the above, we now need to add valuse going back from alevls to be like
+24 NaN
+25 NaN
+26 GCSE    << Note GCSE pops up, se we fill in 25,24 etc going back to age 16.
+...
+46 a_levels
+47 a_levels
+48 a_levels
+49 first_degree
+49 first_degree

@@ -7,9 +7,12 @@ import os
 import pickle
 import gc
 import math
+import numpy as np
+from datetime import datetime
 
 
-start = time.time()
+startTime = datetime.now()
+
 
 def load_large_dta(fname):
 
@@ -37,41 +40,153 @@ def setup_files():
     except Exception as e:
         print('You need to add your source data file')
         print("""Your command should look like this:
-python impute_education.py source_data/my_source.dta
+                 python impute_education.py source_data/my_source.dta
         """)
         sys.exit(2)
 
     return files
 
+
 data_file = setup_files()[0]
 
 
 """ Set up a data frame to work with """
-#reader = pd.read_stata(data_file, chunksize=100000)
 df = load_large_dta(data_file)
 
-# make the new variables we'll need
+# TODO make the new variables we'll need
 # df['highest_qual'] = ''
 # df['qual'] = ''
-
-
-# Find a pidp with grades - 2051
-# for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
-#     if type(row[3]) == str and row[3] != 'no qual':
-#         print(row[3])
-
-# exit()
 
 #df = df.head(78)
 new_df = pd.DataFrame()
 
+qual_map = {
+    'no qual': 16,
+    'GCSE etc.': 16,
+    'A level etc.': 18,
+    'other higher qual': 20,
+    'degree': 21,  # comb of higher and first
+    'teaching/nursing': 22,
+}
+
+# Teaching and GCSE 894887
+# Just teaching and nursing 314859
+# GCSE, Teching, degree 760267
+# A level and teching 897615
+# Alevel teaching other higher qual 274208645
+# GCSE, teaching/nursing 4465571
+# Alevel, teaching and degree 4747771
+# no qual Teaching/nursing 4908251?
+# no qual, teaching, other high qual 69967249
+# Alevel, teaching, other 136967645
+# GCSE teching other higher qual 275129369
+# Alevel teaching degree 342377965
+# Alevel, teaching NaN,  other higher qual
+# Just alevel = 91807
+# just gcse = 223727
+# just other higher qual = 34122, 156407, 170082
+# Just degree 112887
+# just teaching and nursing 252287
+# Other high qual and degree 943851
+# A level and teching 897615
+# no qual onlt 4767
+
+working_pid = False
+
+""" Cleaning up """
+# Merges higher degree and first degree
+# enumeration means the row begins 0
+
+for _i, _row in enumerate(df.itertuples(), start=1):
+    try:
+        pidp = _row[1]
+
+        if working_pid and pidp != working_pid:
+            continue
+
+        print(
+            f"Merging first and higher degree into 'degree'... {len(df.index) - _row[0]}", end="", flush=True)
+        print('\r', end='')
+
+        if df.at[_i, 'high_qual'] == 'higher degree' or df.at[_i, 'high_qual'] == 'first degree':
+            print()
+            df.at[_i, 'high_qual'] = 'degree'
+    except KeyError as e:
+        print(e)
+        pass
+
+""" Helper functions"""
+def get_pid_by_qual(data_frame, qual):
+    # enumeration means the row begins 0
+    for i, row in enumerate(data_frame.itertuples()):
+        pidp = row[1]
+
+        try:
+            next_pidp = data_frame.iloc[i+1][0]
+        except IndexError:
+            next_pidp = 0
+            continue
+
+        high_qual = row[3]
+        # we want to skip some rows as we'll be repeating actions
+        if next_pidp and pidp == next_pidp:
+            continue
+
+        _tmp_data = data_frame.loc[data_frame['pidp'] == pidp]
+
+        quals = []
+        for _i, _row in _tmp_data.iterrows():
+            if _tmp_data.at[_i, 'high_qual'] and type(_tmp_data.at[_i, 'high_qual']) == str:
+                quals.append(_tmp_data.at[_i, 'high_qual'])
+
+        quals = list(set(quals))
+
+        if len(quals) == len(qual):
+            for c in qual:
+                if c in quals:
+                    print(pidp)
+
+#get_pid_by_qual(df, ['other higher qual', 'degree'])
+#exit()
+
+def single_grade_backfill(tmp_data, quals_to_ignore=[]):
+    backfill_year = 0
+    #print('Backfilling by single grade...')
+    qm = qual_map.copy()
+    # remove what we know we don't want to fill
+    for i in quals_to_ignore:
+        qm[i] = 0
+
+    for _i, _row in tmp_data.iterrows():
+        try:
+            if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i+1, 'high_qual']) == str:
+                backfill = tmp_data.at[_i+1, 'high_qual']
+                # get backfill year val so we don't accidently fill forwad
+                backfill_year = tmp_data.at[_i+1, 'year']
+                # now get rid of everything in the qual map above this age
+                for i in qm:
+                    if int(qm[i]) > int(qm[backfill]):
+                        #print(i)
+                        qm[i] = 0
+        except KeyError as e:
+            print(f'{e}... continuing')
+    for _i, _row in tmp_data.iterrows():
+        if type(tmp_data.at[_i, 'high_qual']) != str and tmp_data.at[_i, 'year'] < backfill_year:
+            # find the qual map for this age
+            for qual, age in qm.items():    # for name, age in dictionary.iteritems():  (for Python 2.x)
+                if age <= int(tmp_data.at[_i, 'age']) and age != 0:
+                    tmp_data.at[_i, 'high_qual'] = qual
+    return tmp_data
+
+""" Backfilling values """
 for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
-    #print('Processing {} ...'.format(i))
+    print('Processing {} ...'.format(i))
     locator = i
     pidp = row[1]
 
     # Just take an observation with values we can use for now
-    if pidp != 2051:
+    if working_pid and pidp != working_pid:
+
         continue
 
     try:
@@ -90,74 +205,106 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     # - lookup every observation with this pidp as that is what we will be
     #   Running the logic on
     tmp_data = df.loc[df['pidp'] == pidp]
-    # Loop through a frame by pidp and assign correct values
-    # for _i, _row in enumerate(tmp_data.itertuples()):
-
-    #     tmp_data.at[i,'high_qual'] = 'hi'
-    # #print(tmp_data)
+    # Get all the possible quals
+    quals = []
     for _i, _row in tmp_data.iterrows():
+        if tmp_data.at[_i, 'high_qual'] and type(tmp_data.at[_i, 'high_qual']) == str:
+            quals.append(tmp_data.at[_i, 'high_qual'])
         pass
         #tmp_data.at[_i,'high_qual'] = 'Overridden'
-        # First row will start at age 16
+    quals = list(set(quals))
 
-        # Assumptions
-        # Average age for qualifications
-        # - no_qual is the default and will replace NaN, it means no_qual
-        #   Someone with any qualification will never get no_qual assigned.
-        # - GCSE 16
-        # - A-Level 18
-        # - other higher qual = 20
+    """routes"""
 
-        """ EG
-        If we find someone has a first_degree value at age 50,
-        this means at 50 they were observed with a degree.
-        We assume that the age they got that degree would be 21
-        BUT, if we creep back in the data and find they have high_qual A-levels
-        at age 48, then we know they got there degree at 49.
-        so:
-        45 NaN
-        46 NaN
-        47 NaN
-        48 a_levels
-        49 first_degree
-        49 first_degree
-
-        Given the above, we now need to add valuse going back from alevls to be like
-        24 NaN
-        25 NaN
-        26 GCSE    << Note GCSE pops up, se we fill in 25,24 etc going back to age 16.
-        ...
-        46 a_levels
-        47 a_levels
-        48 a_levels
-        49 first_degree
-        49 first_degree
-
-        """
+    # Single qualifications
+    if quals and len(quals) < 2:
+        if quals[0] == 'no qual':
+            #print('Just other higher qual')
+            tmp_data = single_grade_backfill(tmp_data, [
+                'GCSE etc.',
+                'A level etc',
+                'other higher qual',
+                'degree',
+                'teaching/nursing'
+            ])
 
 
-        # logic here for amending/overriding values
-        # in pidp 2051, the high_qual is first_degree, age achieved 21.
-        # So we need to fill in high_qual values going back to when they were 21 or
-        #  until another high_qual is found EG GCSE.
-        # Before that should be left as NaN
+        elif quals[0] == 'GCSE etc.':
+            #print('Just other higher qual')
+            tmp_data = single_grade_backfill(tmp_data)
 
+        elif quals[0] == 'other higher qual':
+            #print('Just other higher qual')
+            tmp_data = single_grade_backfill(tmp_data, ['A level etc.'])
 
-    print(tmp_data)
+        elif quals[0] == 'A level etc.':
+            #print('Just A level')
+            tmp_data = single_grade_backfill(tmp_data)
 
-    # new_df = new_df.append(tmp_data)
+        elif quals[0] == 'degree':
+            #print('Just degree')
+            tmp_data = single_grade_backfill(
+                tmp_data, ['other higher qual', 'teaching/nursing'])
 
+        elif quals[0] == 'teaching/nursing':
+            #print('Just Teaching/Nursing')
+            tmp_data = single_grade_backfill(tmp_data, ['other higher qual'])
 
-    # appending to a df
-    # new_df = new_df.append({
-    #     df.columns[0]:row[1],
-    #     df.columns[1]:row[2],
-    #     df.columns[2]:row[3],
-    #     df.columns[3]:row[4]
-    # }, ignore_index=True)
+    # Combination of qualifications
+    elif quals:
+        print('More than 1 qual')
+        if set(['other higher qual', 'degree']).issubset(quals) or set(['other higher qual', 'teaching/nursing']).issubset(quals):
+            tmp_data = single_grade_backfill(tmp_data)
+        else:
+            # EG Alevel and teaching would be caught here
+            # Default backfill for multiple quals found uses new method 'multi'
+            for _i, _row in tmp_data.iterrows():
+                try:
+                    if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i+1, 'high_qual']) == str:
+                        backfill = tmp_data.at[_i+1, 'high_qual']
+                        # check the first wave qual value, work out what we need to ignore in the method
+                        if backfill == 'GCSE etc.':
+                            #print('Just other higher qual')
+                            tmp_data = single_grade_backfill(tmp_data)
 
-    # if type(high_qual) == str and high_qual != 'no qual':
-    #     print(high_qual)
-#print(tmp_data)
-# print(df)
-print(new_df)
+                        elif backfill == 'other higher qual':
+                            #print('Just other higher qual')
+                            tmp_data = single_grade_backfill(
+                                tmp_data, ['A level etc.'])
+
+                        elif backfill == 'A level etc.':
+                            #print('Just A level')
+                            tmp_data = single_grade_backfill(tmp_data)
+
+                        elif backfill == 'degree':
+                            #print('Just degree')
+                            tmp_data = single_grade_backfill(
+                                tmp_data, ['other higher qual', 'teaching/nursing'])
+
+                        elif backfill == 'teaching/nursing':
+                            #print('Just Teaching/Nursing')
+                            tmp_data = single_grade_backfill(
+                                tmp_data, ['other higher qual'])
+                except KeyError as e:
+                    print(f'{e}... continuing')
+
+    """forward filling"""
+    # get the latest wave
+    forward_fill = False
+    for _i, _row in tmp_data.iterrows():
+        try:
+            if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i-1, 'high_qual']) == str:
+                forward_fill = tmp_data.at[_i-1, 'high_qual']
+                year = tmp_data.at[_i-1, 'year']
+        except KeyError as e:
+            print(f'{e}... continuing')
+        # Now fill every high_qual with {forward_fill} with any row above the {year}
+        if forward_fill and year:
+            for _i, _row in tmp_data.iterrows():
+                if type(tmp_data.at[_i, 'high_qual']) != str and tmp_data.at[_i, 'year'] > year:
+                    tmp_data.at[_i, 'high_qual'] = forward_fill
+
+    new_df = new_df.append(tmp_data)
+
+new_df.to_csv('out_data/impute_education.csv')
+print(datetime.now() - startTime)
