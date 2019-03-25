@@ -64,9 +64,10 @@ qual_map = {
     'no qual': 16,
     'GCSE etc.': 16,
     'A level etc.': 18,
+    'other qual': 18,
     'other higher qual': 20,
-    'degree': 21,  # comb of higher and first
-    'teaching/nursing': 22,
+    'degree': 21,
+    'teaching or nursing': 22, # TODO - split values 20
 }
 
 # Teaching and GCSE 894887
@@ -86,10 +87,13 @@ qual_map = {
 # just gcse = 223727
 # just other higher qual = 34122, 156407, 170082
 # Just degree 112887
-# just teaching and nursing 252287
+# just teaching or nursing 301247
 # Other high qual and degree 943851
 # A level and teching 897615
 # no qual onlt 4767
+# just other qual 400527
+# 224729809 teaching post 2013
+# 8167 - other higher qual first with degree later
 
 working_pid = False
 
@@ -97,23 +101,21 @@ working_pid = False
 # Merges higher degree and first degree
 # enumeration means the row begins 0
 
-for _i, _row in enumerate(df.itertuples(), start=1):
-    try:
-        pidp = _row[1]
+# for _i, _row in enumerate(df.itertuples(), start=1):
+#     try:
+#         pidp = _row[1]
 
-        if working_pid and pidp != working_pid:
-            continue
+#         if working_pid and pidp != working_pid:
+#             continue
 
-        print(
-            f"Merging first and higher degree into 'degree'... {len(df.index) - _row[0]}", end="", flush=True)
-        print('\r', end='')
-
-        if df.at[_i, 'high_qual'] == 'higher degree' or df.at[_i, 'high_qual'] == 'first degree':
-            print()
-            df.at[_i, 'high_qual'] = 'degree'
-    except KeyError as e:
-        print(e)
-        pass
+#         print(
+#             f"Merging first and higher degree into 'degree'... {len(df.index) - _row[0]}", end="", flush=True)
+#         print('\r', end='')
+#         if df.at[_i, 'high_qual'] == 'higher degree' or df.at[_i, 'high_qual'] == 'first degree':
+#             df.at[_i, 'high_qual'] = 'degree'
+#     except KeyError as e:
+#         print(e)
+#         pass
 
 """ Helper functions"""
 def get_pid_by_qual(data_frame, qual):
@@ -146,13 +148,13 @@ def get_pid_by_qual(data_frame, qual):
                 if c in quals:
                     print(pidp)
 
-#get_pid_by_qual(df, ['other higher qual', 'degree'])
-#exit()
+# get_pid_by_qual(df, ['teaching or nursing'])
+# exit()
 
-def single_grade_backfill(tmp_data, quals_to_ignore=[]):
+def single_grade_backfill(tmp_data, quals_to_ignore=[], qual_map_override=qual_map):
     backfill_year = 0
     #print('Backfilling by single grade...')
-    qm = qual_map.copy()
+    qm = qual_map_override.copy()
     # remove what we know we don't want to fill
     for i in quals_to_ignore:
         qm[i] = 0
@@ -207,9 +209,13 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     tmp_data = df.loc[df['pidp'] == pidp]
     # Get all the possible quals
     quals = []
+    backfill_years = []
+    backfill_quals = []
     for _i, _row in tmp_data.iterrows():
         if tmp_data.at[_i, 'high_qual'] and type(tmp_data.at[_i, 'high_qual']) == str:
             quals.append(tmp_data.at[_i, 'high_qual'])
+            backfill_years.append(tmp_data.at[_i, 'year'])
+            backfill_quals.append(tmp_data.at[_i, 'high_qual'])
         pass
         #tmp_data.at[_i,'high_qual'] = 'Overridden'
     quals = list(set(quals))
@@ -222,16 +228,19 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             #print('Just other higher qual')
             tmp_data = single_grade_backfill(tmp_data, [
                 'GCSE etc.',
-                'A level etc',
+                'A level etc.',
                 'other higher qual',
+                'other qual',
                 'degree',
                 'teaching/nursing'
             ])
 
-
         elif quals[0] == 'GCSE etc.':
             #print('Just other higher qual')
             tmp_data = single_grade_backfill(tmp_data)
+
+        elif quals[0] == 'other qual':
+            tmp_data = single_grade_backfill(tmp_data, ['A level etc.'])
 
         elif quals[0] == 'other higher qual':
             #print('Just other higher qual')
@@ -242,22 +251,57 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             tmp_data = single_grade_backfill(tmp_data)
 
         elif quals[0] == 'degree':
-            #print('Just degree')
+            print('Just degree')
             tmp_data = single_grade_backfill(
-                tmp_data, ['other higher qual', 'teaching/nursing'])
+                tmp_data, ['other higher qual', 'teaching/nursing', 'other qual'])
 
-        elif quals[0] == 'teaching/nursing':
-            #print('Just Teaching/Nursing')
-            tmp_data = single_grade_backfill(tmp_data, ['other higher qual'])
+        elif quals[0] == 'teaching or nursing':
+            print('Just Teaching/Nursing')
+            # Backfill_years [0] will be the first wave year observation
+            if backfill_years[0] < 2013:
+                qual_map = {
+                    'no qual': 16,
+                    'GCSE etc.': 16,
+                    'A level etc.': 18,
+                    'other qual': 18,
+                    'other higher qual': 20,
+                    'degree': 21,
+                    'teaching or nursing': 20,
+                }
+                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+            else:
+                pass
 
     # Combination of qualifications
     elif quals:
         print('More than 1 qual')
-        if set(['other higher qual', 'degree']).issubset(quals) or set(['other higher qual', 'teaching/nursing']).issubset(quals):
-            tmp_data = single_grade_backfill(tmp_data)
+        if set(['other higher qual', 'degree']).issubset(quals) or set(['other higher qual', 'teaching or nursing']).issubset(quals):
+            if backfill_years[0] < 2013 and backfill_quals[0] == 'teaching or nursing':
+                qual_map = {
+                    'no qual': 16,
+                    'GCSE etc.': 16,
+                    'A level etc.': 18,
+                    'other qual': 18,
+                    'other higher qual': 20,
+                    'degree': 21,
+                    'teaching or nursing': 20,
+                }
+                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+            elif backfill_quals[0] == 'other higher qual':
+                qual_map = {
+                    'no qual': 16,
+                    'GCSE etc.': 16,
+                    'A level etc.': 18,
+                    'other qual': 0,
+                    'other higher qual': 22,
+                    'degree': 0,
+                    'teaching or nursing': 0,
+                }
+                tmp_data = single_grade_backfill(tmp_data, ['other qual'], qual_map)
+            else:
+                tmp_data = single_grade_backfill(tmp_data)
         else:
             # EG Alevel and teaching would be caught here
-            # Default backfill for multiple quals found uses new method 'multi'
             for _i, _row in tmp_data.iterrows():
                 try:
                     if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i+1, 'high_qual']) == str:
@@ -273,18 +317,32 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                                 tmp_data, ['A level etc.'])
 
                         elif backfill == 'A level etc.':
-                            #print('Just A level')
+                            print('A level')
                             tmp_data = single_grade_backfill(tmp_data)
+
+                        elif backfill == 'other qual':
+                            tmp_data = single_grade_backfill(tmp_data, ['A level etc.'])
 
                         elif backfill == 'degree':
                             #print('Just degree')
                             tmp_data = single_grade_backfill(
-                                tmp_data, ['other higher qual', 'teaching/nursing'])
+                                tmp_data, ['other higher qual', 'teaching or nursing', 'other qual'])
 
-                        elif backfill == 'teaching/nursing':
+                        elif backfill == 'teaching or nursing':
                             #print('Just Teaching/Nursing')
-                            tmp_data = single_grade_backfill(
-                                tmp_data, ['other higher qual'])
+                            if backfill_years[0] < 2013:
+                                qual_map = {
+                                    'no qual': 16,
+                                    'GCSE etc.': 16,
+                                    'A level etc.': 18,
+                                    'other qual': 18,
+                                    'other higher qual': 20,
+                                    'degree': 21,
+                                    'teaching or nursing': 20,
+                                }
+                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+                            else:
+                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual', 'other_qual'])
                 except KeyError as e:
                     print(f'{e}... continuing')
 
