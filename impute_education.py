@@ -222,16 +222,22 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     quals = []
     backfill_years = []
     backfill_quals = []
+    backfill_age = []
     for _i, _row in tmp_data.iterrows():
         if tmp_data.at[_i, 'high_qual'] and type(tmp_data.at[_i, 'high_qual']) == str:
             quals.append(tmp_data.at[_i, 'high_qual'])
             backfill_years.append(tmp_data.at[_i, 'year'])
             backfill_quals.append(tmp_data.at[_i, 'high_qual'])
+            backfill_age.append(tmp_data.at[_i, 'age'])
         pass
         #tmp_data.at[_i,'high_qual'] = 'Overridden'
     quals = list(set(quals))
 
     """routes"""
+    print(tmp_data)
+    first_backfill_age = backfill_age[0]
+    backfill_age = backfill_age[0]
+
     # Single qualifications
     if quals and len(quals) < 2:
         if quals[0] == 'no qual':
@@ -373,23 +379,78 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
 
     """forward filling"""
     # get the latest wave
-    forward_fill = False
+    forward_fill_start = False
+    year_start = False
     print(tmp_data)
+
+    # get all the row values into a list
+    # Find the first NaN and push all the rest to the remaining list
+    # work out distances between values and null values
+    # loop and appends
+
     for _i, _row in tmp_data.iterrows():
         try:
+            # Find the 1st row where NaN
             if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i-1, 'high_qual']) == str:
-                forward_fill = tmp_data.at[_i-1, 'high_qual']
-                print(forward_fill)
-
-                year = tmp_data.at[_i-1, 'year']
+                first_nan = _i
+                break
         except KeyError as e:
             print(f'{e}... continuing')
+    # now get all the rows we are planning on forward filling
+    # and push there values to a list
+    remaining = []
+    for _i, _row in tmp_data.iterrows():
+        if _i >= first_nan - 1:
+            remaining.append(tmp_data.at[_i, 'high_qual'])
+    # we will now have a list like ['other qual', nan, nan, 'degree', nan, nan]
+    # [0] will be the last value before nan starts, we want to even out the values here
+    # and make something like ['other qual', 'other qual, degree, 'degree', degree, degree]
+
+
+    nan = 1.0
+    remaining = ['other qual',nan ,nan , 'degree', nan, nan, 'polar bear', nan, nan]
+    print(remaining)
+    # find the index of the first NAN in between 2 strings
+    qual_start_value = remaining[0]
+    first_nan_index = None
+    for i, v in enumerate(remaining):
+        if type(v) == float:
+            first_nan_index = i
+            break
+    # find the index of the last NAN in between 2 strings
+    last_nan_index = None
+    for i, v in enumerate(remaining):
+        if type(v) == str and v != qual_start_value:
+            last_nan_index = i-1
+            qual_start_value = v
+            break
+
+    steps = int(last_nan_index - first_nan_index)
+    steps = int((steps + 1) / 2)
+
+    for i, v in enumerate(remaining):
+        if i <= steps and i >= first_nan_index:
+            remaining[i] = remaining[i - i]
+
+    for i, v in enumerate(remaining):
+        if i > steps and i <= last_nan_index:
+            print('meow')
+            remaining[i] = remaining[last_nan_index + 1]
+    print(remaining)
+
+
+
+
         # Now fill every high_qual with {forward_fill} with any row above the {year}
-        if forward_fill and year:
-            for _i, _row in tmp_data.iterrows():
-                if type(tmp_data.at[_i, 'high_qual']) != str and tmp_data.at[_i, 'year'] > year:
-                    tmp_data.at[_i, 'high_qual'] = forward_fill
-    print(tmp_data)
+
+        # if forward_fill_start and year_start:
+        #     for _i, _row in tmp_data.iterrows():
+        #         if tmp_data.at[_i, 'year'] > first_backfill_age:
+        #             print(tmp_data.at[_i, 'high_qual'])
+        #             print('-----')
+        #         # if type(tmp_data.at[_i, 'high_qual']) != str and tmp_data.at[_i, 'year'] > year_start:
+        #         #     tmp_data.at[_i, 'high_qual'] = forward_fill_start
+
     exit()
     new_df = new_df.append(tmp_data)
 
