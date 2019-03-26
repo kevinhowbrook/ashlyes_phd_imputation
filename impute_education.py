@@ -243,26 +243,26 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                 'other qual',
                 'degree',
                 'teaching/nursing'
-            ])
+            ], qual_map, backfill_quals[0], backfill_age)
 
         elif quals[0] == 'GCSE etc.':
             #print('Just other higher qual')
-            tmp_data = single_grade_backfill(tmp_data)
+            tmp_data = single_grade_backfill(tmp_data, [], qual_map, backfill_quals[0], backfill_age)
 
         elif quals[0] == 'other qual':
-            tmp_data = single_grade_backfill(tmp_data, ['A level etc.'])
+            tmp_data = single_grade_backfill(tmp_data, ['A level etc.'], qual_map, backfill_quals[0], backfill_age)
 
         elif quals[0] == 'other higher qual':
             #print('Just other higher qual')
-            tmp_data = single_grade_backfill(tmp_data, ['A level etc.', 'other qual'])
+            tmp_data = single_grade_backfill(tmp_data, ['A level etc.', 'other qual'], qual_map, backfill_quals[0], backfill_age)
         elif quals[0] == 'A level etc.':
             #print('Just A level')
-            tmp_data = single_grade_backfill(tmp_data, ['other qual'])
+            tmp_data = single_grade_backfill(tmp_data, ['other qual'], qual_map, backfill_quals[0], backfill_age)
 
         elif quals[0] == 'degree':
             print('Just degree')
             tmp_data = single_grade_backfill(
-                tmp_data, ['other higher qual', 'teaching/nursing', 'other qual'])
+                tmp_data, ['other higher qual', 'teaching/nursing', 'other qual'], qual_map, backfill_quals[0], backfill_age)
 
         elif quals[0] == 'teaching or nursing':
             print('Just Teaching/Nursing')
@@ -277,7 +277,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                     'degree': 21,
                     'teaching or nursing': 20,
                 }
-                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map, backfill_quals[0], backfill_age)
             else:
                 pass
 
@@ -295,7 +295,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                     'degree': 21,
                     'teaching or nursing': 20,
                 }
-                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map, backfill_quals[0], backfill_age)
             elif backfill_quals[0] == 'other higher qual':
                 qual_map = {
                     'no qual': 16,
@@ -306,10 +306,9 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                     'degree': 0,
                     'teaching or nursing': 0,
                 }
-                tmp_data = single_grade_backfill(tmp_data, ['other qual'], qual_map)
+                tmp_data = single_grade_backfill(tmp_data, ['other qual'], qual_map, backfill_quals[0], backfill_age)
             else:
-                print(tmp_data)
-                tmp_data = single_grade_backfill(tmp_data)
+                tmp_data = single_grade_backfill(tmp_data, [], qual_map, backfill_quals[0], backfill_age)
         else:
             # EG Alevel and teaching would be caught here
             for _i, _row in tmp_data.iterrows():
@@ -320,27 +319,24 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                         # check the first wave qual value, work out what we need to ignore in the method
                         if backfill == 'GCSE etc.':
                             #print('Just other higher qual')
-                            tmp_data = single_grade_backfill(tmp_data)
+                            tmp_data = single_grade_backfill(tmp_data, qual_map, backfill_quals[0], backfill_age)
 
                         elif backfill == 'other qual':
-                            print(tmp_data)
                             tmp_data = single_grade_backfill(tmp_data,[], qual_map, backfill_quals[0], backfill_age)
-                            print(tmp_data)
-                            exit()
 
                         elif backfill == 'other higher qual':
                             #print('Just other higher qual')
                             tmp_data = single_grade_backfill(
-                                tmp_data, ['A level etc.'])
+                                tmp_data, ['A level etc.'], qual_map, backfill_quals[0], backfill_age)
 
                         elif backfill == 'A level etc.':
                             print('A level')
-                            tmp_data = single_grade_backfill(tmp_data, ['other qual'])
+                            tmp_data = single_grade_backfill(tmp_data, ['other qual'], qual_map, backfill_quals[0], backfill_age)
 
                         elif backfill == 'degree':
                             #print('Just degree')
                             tmp_data = single_grade_backfill(
-                                tmp_data, ['other higher qual', 'teaching or nursing', 'other qual'])
+                                tmp_data, ['other higher qual', 'teaching or nursing', 'other qual'], qual_map, backfill_quals[0], backfill_age)
 
                         elif backfill == 'teaching or nursing':
                             #print('Just Teaching/Nursing')
@@ -354,12 +350,11 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                                     'degree': 21,
                                     'teaching or nursing': 20,
                                 }
-                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map)
+                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual','other qual','degree'], qual_map, backfill_quals[0], backfill_age)
                             else:
-                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual', 'other_qual'])
+                                tmp_data = single_grade_backfill(tmp_data, ['other higher qual', 'other_qual'], qual_map, backfill_quals[0], backfill_age)
 
                         elif backfill == 'no qual':
-                            print(tmp_data)
                             tmp_data = single_grade_backfill(tmp_data, [
                                 'GCSE etc.',
                                 'A level etc.',
@@ -367,15 +362,10 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                                 'other qual',
                                 'degree',
                                 'teaching/nursing'
-                            ])
-                            print(tmp_data)
-                            exit()
+                            ], qual_map, backfill_quals[0], backfill_age)
 
                         else:
-                            print(tmp_data)
-                            print('NOT CAUGHT')
-                            exit()
-                            tmp_data = single_grade_backfill(tmp_data)
+                            tmp_data = single_grade_backfill(tmp_data, [], qual_map, backfill_quals[0], backfill_age)
 
 
                 except KeyError as e:
@@ -384,10 +374,13 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
     """forward filling"""
     # get the latest wave
     forward_fill = False
+    print(tmp_data)
     for _i, _row in tmp_data.iterrows():
         try:
             if type(tmp_data.at[_i, 'high_qual']) != str and type(tmp_data.at[_i-1, 'high_qual']) == str:
                 forward_fill = tmp_data.at[_i-1, 'high_qual']
+                print(forward_fill)
+
                 year = tmp_data.at[_i-1, 'year']
         except KeyError as e:
             print(f'{e}... continuing')
@@ -396,7 +389,8 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             for _i, _row in tmp_data.iterrows():
                 if type(tmp_data.at[_i, 'high_qual']) != str and tmp_data.at[_i, 'year'] > year:
                     tmp_data.at[_i, 'high_qual'] = forward_fill
-
+    print(tmp_data)
+    exit()
     new_df = new_df.append(tmp_data)
 
 new_df.to_csv('out_data/impute_education.csv')
