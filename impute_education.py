@@ -148,9 +148,48 @@ def get_pid_by_qual(data_frame, qual):
             for c in qual:
                 if c in quals:
                     print(pidp)
-
 # get_pid_by_qual(df, ['teaching or nursing'])
 # exit()
+
+def forward_fill_remaining(remaining):
+    # find the index of the first NAN in between 2 strings
+    try:
+        qual_start_value = remaining[0]
+        first_nan_index = None
+        for i, v in enumerate(remaining):
+            if type(v) == float:
+                first_nan_index = i
+                break
+        # find the index of the last NAN in between 2 strings
+        last_nan_index = None
+        for i, v in enumerate(remaining):
+            #if type(v) == str and v != qual_start_value:
+            if type(remaining[i]) == float and type(remaining[i + 1]) == str:
+                last_nan_index = i
+                qual_start_value = v
+                break
+
+        print('last index {}'. format(last_nan_index))
+        print('first index {}'. format(first_nan_index))
+        steps = int(last_nan_index - first_nan_index)
+        steps = math.ceil((steps + 1) / 2)
+        print(steps)
+
+
+        for i, v in enumerate(remaining):
+            if i <= first_nan_index + steps - 1 and i >= first_nan_index:
+                remaining[i] = remaining[first_nan_index - 1]
+        print(remaining)
+
+        for i, v in enumerate(remaining):
+            if i >= last_nan_index - steps + 1 and i <= last_nan_index:
+                remaining[i] = remaining[last_nan_index + 1]
+
+        print(remaining)
+    except TypeError:
+        pass
+
+    return remaining
 
 def single_grade_backfill(tmp_data, quals_to_ignore=[], qual_map_override=qual_map, first_wave_qual=None, backfill_age=None):
     backfill_year = 0
@@ -408,35 +447,15 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
 
 
     nan = 1.0
-    remaining = ['other qual',nan ,nan , 'degree', nan, nan, 'polar bear', nan, nan]
+    remaining = ['other qual',nan ,nan ,nan,nan,nan,nan,nan,nan,nan,'degree', nan, nan, 'polar bear', nan, nan]
     print(remaining)
-    # find the index of the first NAN in between 2 strings
-    qual_start_value = remaining[0]
-    first_nan_index = None
-    for i, v in enumerate(remaining):
-        if type(v) == float:
-            first_nan_index = i
-            break
-    # find the index of the last NAN in between 2 strings
-    last_nan_index = None
-    for i, v in enumerate(remaining):
-        if type(v) == str and v != qual_start_value:
-            last_nan_index = i-1
-            qual_start_value = v
-            break
+    while 1.0 in remaining:
 
-    steps = int(last_nan_index - first_nan_index)
-    steps = int((steps + 1) / 2)
+        time.sleep(5)
+        remaining = forward_fill_remaining(remaining)
 
-    for i, v in enumerate(remaining):
-        if i <= steps and i >= first_nan_index:
-            remaining[i] = remaining[i - i]
-
-    for i, v in enumerate(remaining):
-        if i > steps and i <= last_nan_index:
-            print('meow')
-            remaining[i] = remaining[last_nan_index + 1]
-    print(remaining)
+    # with remaining just forward fill everything remaining
+    # map back to the data frame
 
 
 
