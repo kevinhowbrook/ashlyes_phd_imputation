@@ -8,31 +8,37 @@ import os
 
 start = time.time()
 
+
 def setup_files():
     files = []
     try:
         files.append(sys.argv[1])
     except Exception as e:
-        print('You need to add your source data file')
-        print("""Your command should look like this:
+        print("You need to add your source data file")
+        print(
+            """Your command should look like this:
 python impute_mastat.py source_data/my_source.dta out_data/my_output.dta
-        """)
+        """
+        )
         sys.exit(2)
     try:
         files.append(sys.argv[2])
     except Exception as e:
-        print('You need to add your output data file')
-        print("""Your command should look like this:
+        print("You need to add your output data file")
+        print(
+            """Your command should look like this:
 python impute_mastat.py source_data/my_source.dta out_data/my_output.dta
-        """)
+        """
+        )
         sys.exit(2)
 
     return files
 
+
 data_file = setup_files()[0]
 output_file = setup_files()[1]
 
-#'source_data/for_imputation.dta'
+# 'source_data/for_imputation.dta'
 
 """ Set up a data frame to work with """
 reader = pd.read_stata(data_file, chunksize=100000)
@@ -41,17 +47,15 @@ df = pd.DataFrame()
 for itm in reader:
     df = df.append(itm)
 
-df['mastat_missing'] = ''
+df["mastat_missing"] = ""
 
 # For testing just take the first 40
-#df = df.head()
+# df = df.head()
 percentages_report = []
 
 
 for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
-    print('Processing {} ...'.format(i))
-
-
+    print("Processing {} ...".format(i))
 
     locator = i
     # TODO: Split out prev next to methods
@@ -83,30 +87,33 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         #         #df['counter'] == _counter
         #     ]
         # )
-        prev_counter = df.iloc[i-1][6]
-        condition_1 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter_pre'] == prev_counter) & (df['year'] == 2009) & (df['_09'] == 0)]
+        prev_counter = df.iloc[i - 1][6]
+        condition_1 = df.loc[
+            (df["last"] == _last)
+            & (df["next"] == _next)
+            & (df["counter_pre"] == prev_counter)
+            & (df["year"] == 2009)
+            & (df["_09"] == 0)
+        ]
 
-        condition_2 = df.loc[(df['last'] == _last) & (df['next'] == _next) & (
-            df['counter_pre'] == prev_counter) & (df['_09'] == 0)]
+        condition_2 = df.loc[
+            (df["last"] == _last)
+            & (df["next"] == _next)
+            & (df["counter_pre"] == prev_counter)
+            & (df["_09"] == 0)
+        ]
 
         if not condition_1.empty:
-            _satisfy_frame = _satisfy_frame.append(
-                condition_1
-            )
-            print('condition 1 used')
+            _satisfy_frame = _satisfy_frame.append(condition_1)
+            print("condition 1 used")
         elif not condition_2.empty:
-            _satisfy_frame = _satisfy_frame.append(
-                condition_2
-            )
-            print('condition 2 used')
+            _satisfy_frame = _satisfy_frame.append(condition_2)
+            print("condition 2 used")
         else:
-            _satisfy_frame = _satisfy_frame.append(
-                df.iloc[i-1]
-            )
+            _satisfy_frame = _satisfy_frame.append(df.iloc[i - 1])
             # print('condition 3 used')
             # use the prev rowdf.iloc[i-1]
-        counts = _satisfy_frame['mastat'].value_counts().to_dict()
+        counts = _satisfy_frame["mastat"].value_counts().to_dict()
         total = 0
         percentages = []
         if counts:
@@ -114,7 +121,7 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                 total = total + counts[total_item]
 
             for item in counts:
-                #rounded_val = utils.round_to_100(int(counts[item] / total * 100)
+                # rounded_val = utils.round_to_100(int(counts[item] / total * 100)
                 percentages.append([item, counts[item] / total * 100])
 
         # Rounding
@@ -133,13 +140,13 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
                 last = last + val[1]
         for interval in intervals:
             if interval[0] <= random_number <= interval[1]:
-                df.at[locator, 'mastat_missing'] = interval[2]
+                df.at[locator, "mastat_missing"] = interval[2]
 
-df['mastat_missing'] = df['mastat_missing'].astype(str)  # convert type
+df["mastat_missing"] = df["mastat_missing"].astype(str)  # convert type
 df.to_stata(output_file)
 end = time.time()
 
-print('This took: {} seconds'.format(int(end - start)))
+print("This took: {} seconds".format(int(end - start)))
 
 # TODO -
 # Refactor to be run with source data as file argument

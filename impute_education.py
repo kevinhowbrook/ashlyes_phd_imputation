@@ -95,9 +95,10 @@ qual_map = {
 # 224729809 teaching post 2013
 # 8167 - other higher qual first with degree later
 # to check 9527
+# Error on 17015 with GCSE
 
 working_pid = False
-running_pid_test = 17015
+running_pid_test = False
 
 """ Cleaning up """
 # Merges higher degree and first degree
@@ -277,13 +278,12 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
         #tmp_data.at[_i,'high_qual'] = 'Overridden'
     quals = list(set(quals))
     backfill_quals = list(set(backfill_quals))
-    print(backfill_quals)
-    print(quals)
+
     """routes"""
-    if pidp > (running_pid_test - 100):
-        print('Raw data')
-        print(tmp_data)
-        time.sleep(5)
+    # if pidp > (running_pid_test - 100):
+    #     print('Raw data')
+    #     print(tmp_data)
+    #     time.sleep(5)
 
     try:
         first_backfill_age = backfill_age[0]
@@ -514,12 +514,12 @@ for i, row in enumerate(df.itertuples()):  # enumeration means the row begins 0
             pass
         except KeyError:
             pass
-    if pidp > (running_pid_test - 100):
-        print('Final Amended data')
-        print(tmp_data)
-        time.sleep(5)
-    if pidp > running_pid_test:
-        exit()
+    # if pidp > (running_pid_test - 100):
+    #     print('Final Amended data')
+    #     print(tmp_data)
+    #     time.sleep(5)
+    # if pidp > running_pid_test:
+    #     exit()
     new_df = new_df.append(tmp_data)
 
 
