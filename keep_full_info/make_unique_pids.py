@@ -23,11 +23,7 @@ def unique_pids():
     for i, row in enumerate(clean_df.itertuples()):  # enumeration means the row begins 0
         clean_pids.append(row[1])
 
-    interesting_pids = []
-    for i in raw_pids:
-        if i not in clean_pids:
-            interesting_pids.append(i)
-
+    interesting_pids = [i for i in raw_pids if i not in clean_pids]
     # make unique
     the_pids = list(set(interesting_pids))
     df = pd.DataFrame({'pidp':the_pids})
