@@ -208,12 +208,7 @@ def single_grade_backfill(tmp_data, quals_to_ignore=[], qual_map_override=None, 
 
         except KeyError as e:
             print(f'{e}... continuing')
-            pass
-    if backfill_year:
-        backfill_year = backfill_year[0]
-    else:
-        backfill_year = 0
-
+    backfill_year = backfill_year[0] if backfill_year else 0
     for i in qm:
         if int(qm[i]) > int(qm[backfill]):
             # ISSUES HERE
